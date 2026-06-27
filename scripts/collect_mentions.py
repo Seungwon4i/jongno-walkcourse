@@ -2,7 +2,11 @@
 collect_mentions.py — POI 언급량(인기) 수집 (네이버 블로그 검색 API)
 
 각 POI 이름으로 네이버 블로그 검색을 호출해 결과 total 수를 mention_count 로 기록.
-지명 동음이의를 줄이려 검색어는 "이름 + 구" 형태로 만든다. (예: "토속촌삼계탕 종로구")
+검색어는 이름을 따옴표로 묶은 정확구 + 구 형태: `"이름" 구`  (예: '"토속촌삼계탕" 종로구')
+  → 따옴표가 없으면 긴 상호가 형태소로 토큰화돼(함께/있어/좋은/사람) 무관한 글까지
+     대량 매칭되는 문제가 있어, 정확구 일치로 막는다. 구를 덧붙여 지역도 한정.
+  ※ 단, '집'·'안녕' 같은 1~2글자 일반어 상호는 이 방식으로도 과대계상될 수 있어
+     하류의 hotspot 점수 단계에서 윈저라이즈(상한 캡)로 2차 방어를 권장.
 
 입력 : data/processed/pois_clean.parquet   (preprocess_pois.py 산출물)
 출력 : data/processed/pois_mentions.parquet (place_id 기준 누적)
@@ -167,7 +171,7 @@ def main() -> None:
     stopped = False
     try:
         for i, row in enumerate(todo.itertuples(index=False), 1):
-            query = f"{row.name} {row.gu}".strip()
+            query = f'"{row.name}" {row.gu}'.strip()
             total = fetch_total(session, headers, query)
             results[row.place_id] = {
                 "place_id": row.place_id,
