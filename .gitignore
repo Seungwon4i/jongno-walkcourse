@@ -37,6 +37,9 @@ models/checkpoints/
 # --- 노트북 출력 캐시 ---
 notebooks/outputs/
 
+# --- OSMnx/Overpass 다운로드 캐시 ---
+cache/
+
 # --- 프론트엔드 (Node 사용 시) ---
 node_modules/
 dist/

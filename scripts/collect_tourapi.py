@@ -97,6 +97,10 @@ NUM_OF_ROWS = 100
 REQUEST_DELAY = 0.2
 DEDUP_METERS = 80          # 이 거리 안 + 이름 포함관계면 동일 장소로 간주
 
+# 좌표 유효성 범위 (서울 대략). TourAPI 에 (0,0)·해외좌표 등 오류가 섞여 있어 차단.
+LON_MIN, LON_MAX = 126.6, 127.3
+LAT_MIN, LAT_MAX = 37.3, 37.9
+
 CRS_WGS84 = "EPSG:4326"
 CRS_METRIC = "EPSG:5179"
 
@@ -170,6 +174,11 @@ def collect_tour(key: str) -> pd.DataFrame:
                     mapx, mapy = it.get("mapx"), it.get("mapy")
                     if not mapx or not mapy:
                         continue
+                    lon, lat = float(mapx), float(mapy)
+                    # 좌표 유효성 검사 (서울 밖/오류 좌표 차단)
+                    if not (LON_MIN <= lon <= LON_MAX and LAT_MIN <= lat <= LAT_MAX):
+                        print(f"    · 좌표 이상 스킵: {it.get('title')} ({lon}, {lat})")
+                        continue
                     rows.append({
                         "place_id": f"tour_{it.get('contentid')}",
                         "name": (it.get("title") or "").strip(),
@@ -181,8 +190,8 @@ def collect_tour(key: str) -> pd.DataFrame:
                         "phone": it.get("tel", "") or "",
                         "address_name": it.get("addr1", "") or "",
                         "road_address_name": it.get("addr1", "") or "",
-                        "lon": float(mapx),
-                        "lat": float(mapy),
+                        "lon": lon,
+                        "lat": lat,
                         "place_url": "",
                     })
                 if len(items) < NUM_OF_ROWS:
