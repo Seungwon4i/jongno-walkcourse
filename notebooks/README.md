@@ -7,6 +7,7 @@
 ## NN 1차 벤치마크 결과 (L1·L2 랭커) — next-POI 추천
 
 ### 데이터
+- 데이터: Foursquare NYC/Tokyo Check-in (Dingqi Yang 2014). archive/ 의 CSV는 .gitignore 처리 — Kaggle 'foursquare-nyc-and-tokyo-checkin-dataset' 또는 원저자 사이트에서 받을 것.
 - **Foursquare NYC 체크인**: 227,428건, 사용자 1,083명
 - 분할: **train 22.5만 / test = leave-one-out**(사용자별 마지막 방문 1건을 테스트로)
 - 후보 POI는 **상위 5,000개**로 제한, **동일한 403개 test 집합**에서 모든 모델 공정 비교

@@ -45,6 +45,12 @@ node_modules/
 dist/
 build/
 
+# --- 핸드오프 버전 사본 (본체 PROJECT_HANDOFF.md 만 추적) ---
+PROJECT_HANDOFF_v*.md
+
+# --- 대용량 원본 데이터 (Foursquare 102MB) — 출처만 문서화 ---
+archive/
+
 # --- OS / 에디터 ---
 .DS_Store
 Thumbs.db
