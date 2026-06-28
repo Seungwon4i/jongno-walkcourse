@@ -29,3 +29,7 @@
 *.jpeg    binary
 *.gif     binary
 *.pdf     binary
+
+# 언어 통계(GitHub linguist) — folium 등 스크립트 생성 산출물 제외
+outputs/*.html linguist-generated=true
+outputs/**     linguist-vendored=true
