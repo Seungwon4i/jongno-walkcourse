@@ -89,6 +89,7 @@ export default function App() {
   const [path, setPath] = useState([])
   const [err, setErr] = useState(null)
   const [locating, setLocating] = useState(false)
+  const [satellite, setSatellite] = useState(false)  // false=일반(white) / true=위성(Satellite+Hybrid)
 
   useEffect(() => {
     const base = import.meta.env.BASE_URL
@@ -178,6 +179,10 @@ export default function App() {
           style={{ ...btn, opacity: (!pois || locating) ? 0.6 : 1 }}>
           {locating ? '위치 확인 중…' : '📍 내 위치에서 시작'}
         </button>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button onClick={() => setSatellite(false)} style={!satellite ? selBtn : btn}>일반</button>
+          <button onClick={() => setSatellite(true)} style={satellite ? selBtn : btn}>위성</button>
+        </div>
         {initialBudget !== null && (
           <>
             <span style={{ width: 1, height: 24, background: '#ddd' }} />
@@ -219,10 +224,23 @@ export default function App() {
       <MapContainer center={center} zoom={15} scrollWheelZoom attributionControl={false} style={{ height: '100%', width: '100%' }}>
         {/* 기본 "Leaflet" prefix 제거 + VWorld 출처 표시(약관상 필수) */}
         <AttributionControl prefix={false} />
-        <TileLayer
-          attribution='🇰🇷 urbsn4i-sw | © 공간정보 오픈플랫폼(브이월드)'
-          url={`https://api.vworld.kr/req/wmts/1.0.0/${import.meta.env.VITE_VWORLD_KEY}/white/{z}/{y}/{x}.png`}
-          maxZoom={19} />
+        {satellite ? (
+          <>
+            {/* 위성: Satellite(영상, jpeg) + Hybrid(한글 라벨 오버레이, png) 2겹 */}
+            <TileLayer
+              attribution='🇰🇷 urbsn4i-sw | © 공간정보 오픈플랫폼(브이월드)'
+              url={`https://api.vworld.kr/req/wmts/1.0.0/${import.meta.env.VITE_VWORLD_KEY}/Satellite/{z}/{y}/{x}.jpeg`}
+              maxZoom={19} />
+            <TileLayer
+              url={`https://api.vworld.kr/req/wmts/1.0.0/${import.meta.env.VITE_VWORLD_KEY}/Hybrid/{z}/{y}/{x}.png`}
+              maxZoom={19} />
+          </>
+        ) : (
+          <TileLayer
+            attribution='🇰🇷 urbsn4i-sw | © 공간정보 오픈플랫폼(브이월드)'
+            url={`https://api.vworld.kr/req/wmts/1.0.0/${import.meta.env.VITE_VWORLD_KEY}/white/{z}/{y}/{x}.png`}
+            maxZoom={19} />
+        )}
 
         <ClickHandler onPick={handlePickStart} />
 
