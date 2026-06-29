@@ -156,3 +156,9 @@ Foursquare 공개 체크인으로 *방법을 학습·검증*(정량지표)하고
 **다음 행동:** GitHub 첫 푸시 → 무료 API 키 발급(카카오·네이버·공공데이터포털) → 종로+버퍼 POI 수집 첫 스크립트 → (병렬) Colab NN L1(MLP 랭커).
 
 상세는 [`PROJECT_HANDOFF.md`](PROJECT_HANDOFF.md) 13번 섹션 참조.
+
+---
+
+## 라이선스
+
+MIT License — 자세한 내용은 [LICENSE](LICENSE) 파일 참고.
