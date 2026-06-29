@@ -1,4 +1,4 @@
-# 종로 도보 동선 추천 (가칭: Jongno Walk-Course Recommender) — 프로젝트 핸드오프 문서 **v7**
+# 종로 도보 동선 추천 (가칭: Jongno Walk-Course Recommender) — 프로젝트 핸드오프 문서 **v8**
 
 > **이 문서의 목적**
 > 채팅(claude.ai 상담 대화)이 길어져 새 창에서 다시 시작할 때, **이 문서 전체를 새 채팅에 붙여넣으면 맥락이 그대로 복원**되도록 만든 단일 진실 소스(single source of truth).
@@ -9,6 +9,8 @@
 > **v6 변경 요지:** (1) **출발점 선택(D21) 완료** — 지도클릭 스냅 + GPS "내 위치에서 시작"(경복궁 고정 해제). (2) **표시 정책 확정** — 카운트 컷·거리창 폐기 → "남은 예산 내 도달 후보 전부 + 마커 클러스터링(spiderfy)". 시간예산 단조성 버그 해결. (3) **교보문고 광화문점 OD 편입**(946→**947 노드**, `add_kyobo.py`). (4) **고전 ML(RF·로지스틱·KNN) vs NN 비교 완료** — NN L2가 R@1·NDCG 1위, RF가 R@10 1위, 종합(NDCG) NN 우위. (5) attribution = 🇰🇷 urbsn4i-sw. 다음: L3(선택) · 데이터 확장(B) · 백엔드(D22).
 >
 > **v7 변경 요지:** NN L3(LSTM 순서 모델) ablation 완료 — L3·L3b 모두 L2에 크게 못 미침 (순서는 무익·유해, 단골 집합이 핵심). 최종 챔피언=L2 확정. GitHub Pages 배포 완료 (urbsn4i-sw.github.io/jongno-walkcourse/). 다음: 데이터 확장(B).
+>
+> **v8 변경 요지:** 데이터 확장(B) 완료 — 서점·문화시설·쇼핑 34개를 (b)증분 방식으로 OD 편입 (947→981 노드, cat2 7종→10종). add_expansion.py(add_kyobo 일반화, giant component 스냅). 네이버 지역 API 검토: 쿼리당 5건 캡으로 수집 부적합, 카카오 전수가 우수 → 카카오 유지 (네이버는 인기신호 보조만 가능, future work). 영업상태 검증은 범위 밖(카카오·네이버 모두 부정확, 교차검증 신뢰도 표시는 future work). 배포 갱신 완료. 다음: (다) 마무리 / Hugging Face.
 
 ---
 
@@ -51,13 +53,14 @@
 | D16 | 지도 타일 | **VWorld `white` 한글 일반지도**(무료 키). ⚠️ 유효 레이어명 `Base`/`white`/`midnight`/`Hybrid`만(`gray` 무효). **attribution = `🇰🇷 urbsn4i-sw \| © 공간정보 오픈플랫폼(브이월드)`** (Leaflet prefix 제거; VWorld 출처는 약관상 필수 유지). 위성지도(`Satellite` 레이어) 전환은 future work(TileLayer URL 한 줄) |
 | D17 | 보행 시간 모델 | travel_time = 거리 ÷ **4.5km/h**(검증 통과). 신호·계단 미반영(가정) |
 | D18 | 랜덤포레스트 | 고전 ML 베이스라인(아래 6번에서 실제 비교). NN 트랙 베이스라인=인기순·개인이력 |
-| D19 | 카테고리 세분(cat2) | **cat2 7종**: 한식·술집·식당(기타)·카페·명소·유적·거리·자연·기타관광. `category_name` 매핑. TourAPI 159개는 평면→"기타관광" |
+| D19 | 카테고리 세분(cat2) | **cat2 10종**: 한식·술집·식당(기타)·카페·명소·유적·거리·자연·기타관광 (+ **서점·문화시설·쇼핑** 데이터 확장 B). `category_name` 매핑(신규 3종은 category_main 자체가 cat2). TourAPI 159개는 평면→"기타관광" |
 | D20 | 종로구 경계 표시 | VWorld 2D데이터 API → MultiPolygon `jongno_boundary.geojson` → `<GeoJSON>` 파란 점선 |
 | **D21** | **출발점 선택 — ✅ 완료** | **지도클릭** + **GPS "내 위치에서 시작"** → `nearestNode`로 종로 최근접 POI 스냅(직선거리, **2km 초과=권역밖 폴백 alert**). 동선 진행 중(path 2+) 클릭 무시. GPS는 HTTPS/localhost서만 동작(GitHub Pages OK). ⚠️ 직선거리 스냅 — 도보거리 스냅은 백엔드(D22) future work |
 | D22 | 백엔드(FastAPI) — 검토 중 | 도보거리 스냅·라우팅·NN 서버추론용. 로컬 우선 제작, 공개 배포는 마지막 결정 |
 | D23 | NN 학습 데이터 | 종로엔 선택 로그 없음 → **Foursquare NYC 공개 체크인**(Dingqi Yang 2014)으로 방법 학습·검증, 구조를 종로에 적용 |
 | **D24** | **후보 표시 정책 — ✅ 확정** | **"남은 예산 내 도달 후보 전부 + 마커 클러스터링"**. 예산↑ = 화면 후보 superset(단조성 자연 성립). 정렬 = 도보시간 오름차순 → hotspot tiebreak. 클러스터(`react-leaflet-cluster`)로 빽빽함 해소, 클릭 시 확대 없이 펼침(spiderfy). ⚠️ **폐기된 시도:** 카운트 컷(상위 N) → 예산↑ 시 가까운 후보 밀림(버그), 거리창(도보 N분 고정) → 예산 무시돼 1/2/3h 동일. 둘 다 폐기. ※ 현재 정렬은 임시 휴리스틱 — 최종은 C 레이어 NN 랭커 |
 | **D25** | **교보문고 광화문점 수동 편입** | 대표 서점 랜드마크라 명시적 큐레이션. `add_kyobo.py`로 보행그래프 single-source Dijkstra 1회 → OD 947번째 행/열 추가(전체 재계산 X). cat2=기타관광(카카오 원분류는 서점 — 데이터 확장 B 때 재분류 검토) |
+| **D26** | **데이터 확장 B — ✅ 완료** | 서점·문화시설·쇼핑 (b)증분 편입(947→981, `add_expansion.py`). 쇼핑 핵심상권(광장시장·인사동)은 기존 노드에 이미 포함돼 동대문·동묘 상권만 추가. 네이버 지역 API는 5건 캡으로 수집 부적합(카카오 유지). 정찰 점수(build_hotspot 윈저라이즈+STOPWORD) 후 엄선, giant component 스냅 |
 
 ---
 
@@ -76,10 +79,10 @@
 
 ## 5. ★ 앱 UX 요구사항 — ✅ 구현 완료
 1. **지도:** VWorld `white` 한글 일반지도. ✅
-2. **상단 컨트롤:** 시간 버튼(30분/1h/2h/3h) + 카테고리 필터(cat2 7종) + 뒤로가기. ✅
+2. **상단 컨트롤:** 시간 버튼(30분/1h/2h/3h) + 카테고리 필터(cat2 10종) + 뒤로가기. ✅
 3. **시간 선택 시:** 출발점 기준 도달 후보 → 선택 → 다음 후보 → 예산 소진까지(가변 깊이). ✅
 4. **뒤로 가기(undo):** 예산 복구 + 후보 재표시(스택 패턴). ✅
-5. **카테고리 필터(cat2 7종):** 각 단계에서 필터. ✅
+5. **카테고리 필터(cat2 10종):** 각 단계에서 필터 (서점=파랑/문화시설=분홍/쇼핑=갈색 추가). ✅
 6. **마우스 호버 툴팁:** 이름·cat2·도보분. ✅
 7. **종로구 경계 표시.** ✅
 8. **출발점 선택 (D21):** 지도클릭 + GPS "내 위치에서 시작" → 최근접 POI 스냅. ✅ (경복궁 고정 해제)
@@ -146,18 +149,19 @@
 
 ---
 
-## 8. 데이터 파이프라인 — ✅ 완성 (947 노드)
-**스크립트(12), 커밋·푸시 완료. 원본 데이터는 `.gitignore`.**
+## 8. 데이터 파이프라인 — ✅ 완성 (981 노드)
+**스크립트(13), 커밋·푸시 완료. 원본 데이터는 `.gitignore`.**
 ```
 collect_pois.py / preprocess_pois.py / collect_mentions.py / build_hotspot.py /
 cap_nodes.py / collect_tourapi.py / build_graph.py /
-export_frontend_data.py → pois.json + od.json (cat2 7종) /
+export_frontend_data.py → pois.json + od.json (cat2 10종) /
 fetch_boundary.py → 종로 경계 GeoJSON / make_map.py → folium 검증 /
-add_kyobo.py → 교보문고 1곳 OD 편입(947 노드, --write 안전장치)
+add_kyobo.py → 교보문고 1곳 OD 편입(947 노드, --write 안전장치) /
+add_expansion.py → 데이터 확장 B: 서점·문화시설·쇼핑 34개 일괄 OD 편입(981 노드, --write 안전장치)
 ```
-**원본 산출물 (data/processed/, gitignore):** `pois_final.parquet`(**947 POI**), `od_matrix.parquet`(**947×947** 도보분 — ⚠️ place_id를 컬럼 저장 → 읽을 때 `set_index("place_id")` 필요), `walk_graph.gpickle`(~140MB, pyrosm 보행그래프 16.5만 노드), `node_snap.parquet`. **백업:** `*.parquet.bak`(교보문고 편입 전, gitignore).
-**프론트 배포 산출물 (frontend/public/data/, 커밋됨):** `pois.json`(947개), `od.json`(~5.32MB; `{ids,times}`, null=도달불가/180분초과), `jongno_boundary.geojson`(~94KB).
-**cat2 분포(946 기준):** 카페200 / 한식169 / 기타관광159(+교보문고=160) / 거리·자연150 / 식당기타125 / 술집106 / 명소·유적37.
+**원본 산출물 (data/processed/, gitignore):** `pois_final.parquet`(**981 POI**), `od_matrix.parquet`(**981×981** 도보분 — ⚠️ place_id를 컬럼 저장 → 읽을 때 `set_index("place_id")` 필요), `walk_graph.gpickle`(~140MB, pyrosm 보행그래프 16.5만 노드), `node_snap.parquet`. **백업:** `*.parquet.bak`(교보문고 편입 전) / `*.parquet.bak2`(데이터 확장 B 편입 전), 모두 gitignore.
+**프론트 배포 산출물 (frontend/public/data/, 커밋됨):** `pois.json`(981개), `od.json`(~5.71MB; `{ids,times}`, null=도달불가/180분초과), `jongno_boundary.geojson`(~94KB).
+**cat2 분포(981):** 카페200 / 한식169 / 기타관광160 / 거리·자연150 / 식당기타125 / 술집106 / 명소·유적37 / 문화시설20 / 서점10 / 쇼핑4.
 
 > ⚠️ **보행그래프 스냅 함정(교훈):** pyrosm 보행망(`retain_all=True`)에 **끊긴 섬(island) 노드**가 존재 → 신규 노드를 단순 최근접 스냅하면 고립 컴포넌트에 붙어 도달 0/946 NaN. **최대 연결 컴포넌트(giant component)로 제한 스냅** 필수. (교보문고 첫 드라이런서 발견·수정. 검증: 교보↔경복궁 12.3분, NaN 2.1%)
 
@@ -193,13 +197,14 @@ add_kyobo.py → 교보문고 1곳 OD 편입(947 노드, --write 안전장치)
 - **데이터:** **교보문고 광화문점 OD 편입(947 노드, D25)**.
 - **NN/ML:** L1·L2 + **고전 ML(RF·로지스틱·KNN) 비교 완료** — NN L2 R@1·NDCG 1위, 종합 NN 우위(6번).
 - **NN L3 ablation:** 순서 모델(LSTM) 무익 입증, 챔피언 L2 확정.
+- **데이터 확장 B (D26):** 서점10·문화시설20·쇼핑4 = 34개 (b)증분 OD 편입 → **981 노드, cat2 10종**. 배포 갱신 완료.
 - **GitHub Pages 배포 완료:** urbsn4i-sw.github.io/jongno-walkcourse/ (Claude Code 무관 상시 접속).
-- 전부 GitHub push·동기화. (최신 커밋: `8f41dd2`)
+- 전부 GitHub push·동기화. (최신 커밋: `28cbbbf`)
 
 **미구현 / 다음 후보:**
-1. **데이터 확장 (B)** — 서점·쇼핑·문화시설(박물관·도서관) 추가 → 노드 재구성 → OD 재계산 → JSON 재생성. ⚠️ **반나절 작업, 위험**(파이프라인 재실행 + 교보문고 재편입 충돌 + 노드캡 재배분). 교보문고 서점 재분류도 이때.
+1. **(다) 마무리 / Hugging Face** — OD 경량화(od.json 5.71MB) · README 영어화 · 라이선스(MIT) · 위성지도 토글 · (선택) Hugging Face Spaces 배포.
 2. **백엔드 FastAPI (D22)** — 도보거리 스냅·라우팅.
-3. **마무리:** OD 경량화(od.json 5.3MB) · README 영어화 · 라이선스(MIT) · 위성지도 토글 · NN 랭커 앱 연결(C 레이어).
+3. **NN 랭커 앱 연결 (C 레이어)** — Foursquare 검증 모델/신호를 앱 추천에 연결.
 
 > ⚠️ **Claude Code는 새 채팅 불필요.** Colab은 "모두 실행" + CSV 재업로드로 복원.
 > **작업 방식:** claude.ai(상담/설계)=결정·지시(붙여넣기용 코드블록) / Claude Code(실행)=명령·파일편집 / Colab(NN)=셀 단위. 모든 답변 한국어, 끝에 "2.지금까지 / 3.다음으로" 두 섹션 고정.
@@ -207,7 +212,7 @@ add_kyobo.py → 교보문고 1곳 OD 편입(947 노드, --write 안전장치)
 ---
 
 ## 14. Future Work (명시적 보류)
-- 다국어 UI / README 영어화 · 보행시간 정밀화(신호·계단) · 출발점 도보거리 스냅(백엔드) · OD 경량화 · 관광 세분 정밀화 · **데이터 확장(서점·쇼핑·문화시설)** · 교보문고 서점 재분류 · RL·확산 모델 · 성·연령 학습 개인화 · 단계별 카테고리 다양성 · 후보 정렬 "제자리 맴돎" 개선(NN 랭커로) · **위성지도 토글(VWorld Satellite)** · 백엔드 공개 호스팅(D22) · NN L3/L4 · **NN·고전ML 랭커를 종로 앱에 실제 연결**(현재 Foursquare로 방법 검증까지).
+- 다국어 UI / README 영어화 · 보행시간 정밀화(신호·계단) · 출발점 도보거리 스냅(백엔드) · OD 경량화 · 관광 세분 정밀화 · 교보문고 서점 재분류 · RL·확산 모델 · 성·연령 학습 개인화 · 단계별 카테고리 다양성 · 후보 정렬 "제자리 맴돎" 개선(NN 랭커로) · **위성지도 토글(VWorld Satellite)** · 백엔드 공개 호스팅(D22) · NN L4 · **NN·고전ML 랭커를 종로 앱에 실제 연결**(현재 Foursquare로 방법 검증까지) · **네이버 플레이스 인기신호 보조**(지역 API 5건 캡 → 인기순 top5를 가중치로만) · **영업상태 교차검증 신뢰도 표시**(카카오·네이버 모두 부정확 → 신뢰도 배지).
 
 ---
 
@@ -217,4 +222,5 @@ add_kyobo.py → 교보문고 1곳 OD 편입(947 노드, --write 안전장치)
 - **v5:** NN 트랙 1차(L1·L2) — Foursquare NYC next-POI(D23), L2 전 지표 베이스라인 초과. username `urbsn4i-sw` 확정.
 - **v6:** **출발점 선택(D21) 완료**(클릭+GPS) · **표시 정책 확정(D24)**(예산기반 도달후보 + 클러스터링; 카운트컷·거리창 폐기, 단조성 버그 해결) · **교보문고 OD 편입(D25, 947 노드)** · **고전 ML(RF·로지스틱·KNN) vs NN 비교 완료**(6번; NN L2 R@1·NDCG 1위, RF R@10 1위) · attribution(🇰🇷 urbsn4i-sw, D16) · 보행그래프 고립노드 스냅 함정(8번) · 예산별 체인 길이(9번). 다음=L3(선택)·데이터확장B·백엔드.
 - **v7:** NN L3 ablation 완료(순서 무익, 챔피언 L2) · GitHub Pages 배포 완료. 다음=데이터확장 B.
+- **v8:** 데이터 확장(B) 완료(D26) — 서점·문화시설·쇼핑 34개 (b)증분 OD 편입(947→981, cat2 7→10종, add_expansion.py). 네이버 지역 API 5건 캡으로 수집 부적합(카카오 유지, 인기신호 보조는 future work). 영업상태 교차검증 신뢰도=future work. 배포 갱신. 다음=(다)마무리/Hugging Face.
 - 이후 변경은 여기에 한 줄씩 추가.
