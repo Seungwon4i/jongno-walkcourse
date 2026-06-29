@@ -50,6 +50,10 @@ def classify(row):
     cn = str(row.get("category_name", ""))
     parts = [p.strip() for p in cn.split(">")]
     main = row["category_main"]
+    # 데이터 확장(B) 신규 노드: category_main 이 이미 cat2(서점/문화시설/쇼핑) → 그대로 사용.
+    # (기존 947은 category_main 이 음식점/카페/관광명소라 이 분기에 안 걸림)
+    if main in ("서점", "문화시설", "쇼핑"):
+        return main
     # 음식점 세분
     if main == "음식점":
         t = parts[1] if len(parts) > 1 else ""
